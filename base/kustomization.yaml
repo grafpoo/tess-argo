@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- namespace.yaml
+- pv.yaml
+- pvc.yaml
+- service.yaml
+- deployment.yaml
+
+commonAnnotations:
+  app: client-postgres
+
+labels:
+- includeSelectors: true
+  pairs:
+    app: client-postgres
+
+# # namePrefix: cp-
+# # nameSuffix: -main
+
+configMapGenerator:
+- envs:
+  - config.properties
+  name: pg-config
+  namespace: client-postgres

@@ -1,0 +1,68 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: pv-postgres
+spec:
+  capacity:
+    storage: 2Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/tmp/postgres" ## this folder need exist on your node. Keep in minds also who have permissions to folder. Used tmp as it have 3x rwx
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - ubuntu18-kubeadm-worker1    
+
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: pvc-postgres
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+spec:
+  selector:
+    matchLabels:
+      app: postgres
+  replicas: 1
+  strategy: {}
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - image: nginx
+        name: nginx      
+        volumeMounts:
+        - mountPath: /home    ## path to folder inside container
+          name: vol-postgres
+      affinity:               ## specified affinity to schedule all pods on this specific node with name ubuntu18-kubeadm-worker1
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: kubernetes.io/hostname
+                operator: In
+                values:
+                - ubuntu18-kubeadm-worker1  
+      dnsPolicy: ClusterFirstWithHostNet
+      hostNetwork: true
+      volumes:
+      - name: vol-postgres
+        persistentVolumeClaim:
+          claimName: pvc-postgres
